@@ -3,14 +3,20 @@ import express from "express";
 import rateLimit from "express-rate-limit";
 import helmet from "helmet";
 import morgan from "morgan";
+import path from "path";
 import swaggerJsdoc from "swagger-jsdoc";
 import swaggerUi from "swagger-ui-express";
 import { config } from "./config/env";
 import { errorHandler } from "./middleware/errorHandler";
 import authRoutes from "./routes/auth.routes";
+import competitionRoutes from "./routes/competition.routes";
 import groupRoutes from "./routes/group.routes";
+import invitationRoutes from "./routes/invitation.routes";
 import matchRoutes from "./routes/match.routes";
 import predictionRoutes from "./routes/prediction.routes";
+import statisticsRoutes from "./routes/statistics.routes";
+import teamRoutes from "./routes/team.routes";
+import userRoutes from "./routes/user.routes";
 
 const app = express();
 
@@ -85,9 +91,14 @@ app.get("/health", (req, res) => {
 
 // API Routes
 app.use("/api/auth", authRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/competitions", competitionRoutes);
+app.use("/api/teams", teamRoutes);
 app.use("/api/groups", groupRoutes);
 app.use("/api/predictions", predictionRoutes);
 app.use("/api/matches", matchRoutes);
+app.use("/api/invitations", invitationRoutes);
+app.use("/api/statistics", statisticsRoutes);
 
 // 404 handler
 app.use((req, res) => {
@@ -107,6 +118,7 @@ app.use(errorHandler);
 app.listen(config.port, () => {
   console.log(`\n🚀 Server running on http://localhost:${config.port}`);
   console.log(`📚 API Documentation: http://localhost:${config.port}/api/docs`);
+  console.log(`🏒 FrozenBet API - Hockey Predictions Platform`);
 });
 
 export default app;

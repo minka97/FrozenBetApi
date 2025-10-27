@@ -317,4 +317,213 @@ router.delete('/:id/members/:userId', authenticate, async (req: AuthRequest, res
   }
 });
 
+/**
+ * @swagger
+ * /api/groups/{id}/rankings:
+ *   get:
+ *     summary: Get group rankings
+ *     tags: [Groups]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Group rankings
+ */
+router.get('/:id/rankings', async (req, res, next) => {
+  try {
+    const rankings = await groupService.getRankings(parseInt(req.params.id));
+    sendSuccess(res, rankings);
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * @swagger
+ * /api/groups/{id}/predictions:
+ *   get:
+ *     summary: Get all predictions in a group
+ *     tags: [Groups]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: List of predictions
+ */
+router.get('/:id/predictions', authenticate, async (req: AuthRequest, res, next) => {
+  try {
+    const predictions = await groupService.getGroupPredictions(
+      parseInt(req.params.id),
+      req.user!.userId
+    );
+    sendSuccess(res, predictions);
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * @swagger
+ * /api/groups/{id}/rules:
+ *   get:
+ *     summary: Get group scoring rules
+ *     tags: [Groups]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: List of scoring rules
+ */
+router.get('/:id/rules', async (req, res, next) => {
+  try {
+    const rules = await groupService.getScoringRules(parseInt(req.params.id));
+    sendSuccess(res, rules);
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * @swagger
+ * /api/groups/{id}/rules:
+ *   post:
+ *     summary: Create a scoring rule
+ *     tags: [Groups]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - ruleDescription
+ *               - points
+ *             properties:
+ *               ruleDescription:
+ *                 type: string
+ *               points:
+ *                 type: integer
+ *     responses:
+ *       201:
+ *         description: Scoring rule created
+ */
+router.post('/:id/rules', authenticate, async (req: AuthRequest, res, next) => {
+  try {
+    const rule = await groupService.createScoringRule(
+      parseInt(req.params.id),
+      req.user!.userId,
+      req.body
+    );
+    sendSuccess(res, rule, 'Scoring rule created successfully', 201);
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * @swagger
+ * /api/groups/{id}/rules/{ruleId}:
+ *   put:
+ *     summary: Update a scoring rule
+ *     tags: [Groups]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - in: path
+ *         name: ruleId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               ruleDescription:
+ *                 type: string
+ *               points:
+ *                 type: integer
+ *     responses:
+ *       200:
+ *         description: Scoring rule updated
+ */
+router.put('/:id/rules/:ruleId', authenticate, async (req: AuthRequest, res, next) => {
+  try {
+    const rule = await groupService.updateScoringRule(
+      parseInt(req.params.id),
+      parseInt(req.params.ruleId),
+      req.user!.userId,
+      req.body
+    );
+    sendSuccess(res, rule, 'Scoring rule updated successfully');
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * @swagger
+ * /api/groups/{id}/rules/{ruleId}:
+ *   delete:
+ *     summary: Delete a scoring rule
+ *     tags: [Groups]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - in: path
+ *         name: ruleId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Scoring rule deleted
+ */
+router.delete('/:id/rules/:ruleId', authenticate, async (req: AuthRequest, res, next) => {
+  try {
+    const result = await groupService.deleteScoringRule(
+      parseInt(req.params.id),
+      parseInt(req.params.ruleId),
+      req.user!.userId
+    );
+    sendSuccess(res, result);
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default router;

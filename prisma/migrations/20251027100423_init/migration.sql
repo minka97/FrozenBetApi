@@ -122,19 +122,6 @@ CREATE TABLE "group_invitations" (
 );
 
 -- CreateTable
-CREATE TABLE "group_bans" (
-    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    "group_id" INTEGER NOT NULL,
-    "user_id" INTEGER NOT NULL,
-    "banned_by" INTEGER,
-    "reason" TEXT,
-    "banned_at" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT "group_bans_group_id_fkey" FOREIGN KEY ("group_id") REFERENCES "groups" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT "group_bans_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT "group_bans_banned_by_fkey" FOREIGN KEY ("banned_by") REFERENCES "users" ("id") ON DELETE SET NULL ON UPDATE CASCADE
-);
-
--- CreateTable
 CREATE TABLE "group_rankings" (
     "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     "group_id" INTEGER NOT NULL,
@@ -165,9 +152,6 @@ CREATE UNIQUE INDEX "predictions_user_id_match_id_group_id_key" ON "predictions"
 
 -- CreateIndex
 CREATE UNIQUE INDEX "group_invitations_token_key" ON "group_invitations"("token");
-
--- CreateIndex
-CREATE UNIQUE INDEX "group_bans_group_id_user_id_key" ON "group_bans"("group_id", "user_id");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "group_rankings_group_id_user_id_key" ON "group_rankings"("group_id", "user_id");

@@ -187,4 +187,45 @@ router.post(
   }
 );
 
+/**
+ * @swagger
+ * /api/auth/logout:
+ *   post:
+ *     summary: Logout user
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Logout successful
+ */
+router.post('/logout', authenticate, async (req: AuthRequest, res, next) => {
+  try {
+    sendSuccess(res, { message: 'Logout successful' });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * @swagger
+ * /api/auth/refresh:
+ *   post:
+ *     summary: Refresh JWT token
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Token refreshed
+ */
+router.post('/refresh', authenticate, async (req: AuthRequest, res, next) => {
+  try {
+    const result = await authService.refreshToken(req.user!.userId);
+    sendSuccess(res, result, 'Token refreshed successfully');
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default router;

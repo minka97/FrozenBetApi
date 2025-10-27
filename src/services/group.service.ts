@@ -284,6 +284,138 @@ export class GroupService {
     return { message: 'Member removed successfully' };
   }
 
+  async getRankings(groupId: number) {
+    const group = await prisma.group.findUnique({
+      where: { id: groupId },
+    });
+
+    if (!group) {
+      throw new AppError(404, 'NOT_FOUND', 'Group not found');
+    }
+
+    const rankings = await prisma.groupRanking.findMany({
+      where: { groupId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            username: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
+      orderBy: { rank: 'asc' },
+    });
+
+    return rankings;
+  }
+
+  async getGroupPredictions(groupId: number, userId: number) {
+    const member = await prisma.groupMember.findFirst({
+      where: { groupId, userId },
+    });
+
+    if (!member) {
+      throw new AppError(403, 'FORBIDDEN', 'Not a member of this group');
+    }
+
+    const predictions = await prisma.prediction.findMany({
+      where: { groupId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            username: true,
+          },
+        },
+        match: {
+          include: {
+            homeTeam: true,
+            awayTeam: true,
+          },
+        },
+      },
+      orderBy: { predictedAt: 'desc' },
+    });
+
+    return predictions;
+  }
+
+  async getScoringRules(groupId: number) {
+    const group = await prisma.group.findUnique({
+      where: { id: groupId },
+    });
+
+    if (!group) {
+      throw new AppError(404, 'NOT_FOUND', 'Group not found');
+    }
+
+    const rules = await prisma.groupScoringRule.findMany({
+      where: { groupId },
+      orderBy: { points: 'desc' },
+    });
+
+    return rules;
+  }
+
+  async createScoringRule(groupId: number, userId: number, data: {
+    ruleDescription: string;
+    points: number;
+  }) {
+    await this.checkPermission(groupId, userId, ['owner', 'admin']);
+
+    const rule = await prisma.groupScoringRule.create({
+      data: {
+        groupId,
+        ruleDescription: data.ruleDescription,
+        points: data.points,
+      },
+    });
+
+    return rule;
+  }
+
+  async updateScoringRule(groupId: number, ruleId: number, userId: number, data: {
+    ruleDescription?: string;
+    points?: number;
+  }) {
+    await this.checkPermission(groupId, userId, ['owner', 'admin']);
+
+    const rule = await prisma.groupScoringRule.findFirst({
+      where: { id: ruleId, groupId },
+    });
+
+    if (!rule) {
+      throw new AppError(404, 'NOT_FOUND', 'Scoring rule not found');
+    }
+
+    const updated = await prisma.groupScoringRule.update({
+      where: { id: ruleId },
+      data,
+    });
+
+    return updated;
+  }
+
+  async deleteScoringRule(groupId: number, ruleId: number, userId: number) {
+    await this.checkPermission(groupId, userId, ['owner', 'admin']);
+
+    const rule = await prisma.groupScoringRule.findFirst({
+      where: { id: ruleId, groupId },
+    });
+
+    if (!rule) {
+      throw new AppError(404, 'NOT_FOUND', 'Scoring rule not found');
+    }
+
+    await prisma.groupScoringRule.delete({
+      where: { id: ruleId },
+    });
+
+    return { message: 'Scoring rule deleted successfully' };
+  }
+
   private async checkPermission(groupId: number, userId: number, allowedRoles: string[]) {
     const member = await prisma.groupMember.findFirst({
       where: { groupId, userId },

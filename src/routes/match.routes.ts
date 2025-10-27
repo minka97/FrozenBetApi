@@ -3,9 +3,11 @@ import prisma from '../config/database';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { sendSuccess } from '../utils/response';
 import { PredictionService } from '../services/prediction.service';
+import { MatchService } from '../services/match.service';
 
 const router = Router();
 const predictionService = new PredictionService();
+const matchService = new MatchService();
 
 /**
  * @swagger
@@ -195,6 +197,56 @@ router.get('/:matchId/groups/:groupId/predictions', authenticate, async (req: Au
     );
 
     sendSuccess(res, predictions);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post('/', authenticate, async (req, res, next) => {
+  try {
+    const match = await matchService.createMatch(req.body);
+    sendSuccess(res, match, 'Match created successfully', 201);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.put('/:id', authenticate, async (req, res, next) => {
+  try {
+    const match = await matchService.updateMatch(parseInt(req.params.id), req.body);
+    sendSuccess(res, match, 'Match updated successfully');
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.delete('/:id', authenticate, async (req, res, next) => {
+  try {
+    const result = await matchService.deleteMatch(parseInt(req.params.id));
+    sendSuccess(res, result);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.patch('/:id/score', authenticate, async (req, res, next) => {
+  try {
+    const { homeScore, awayScore } = req.body;
+    const match = await matchService.updateScore(
+      parseInt(req.params.id),
+      homeScore,
+      awayScore
+    );
+    sendSuccess(res, match, 'Score updated and points calculated');
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get('/finished', async (req, res, next) => {
+  try {
+    const matches = await matchService.getFinishedMatches();
+    sendSuccess(res, matches);
   } catch (error) {
     next(error);
   }

@@ -134,6 +134,68 @@ export class PredictionService {
     return predictions;
   }
 
+  async getPredictionById(predictionId: number, userId: number) {
+    const prediction = await prisma.prediction.findUnique({
+      where: { id: predictionId },
+      include: {
+        match: {
+          include: {
+            homeTeam: true,
+            awayTeam: true,
+            competition: true,
+          },
+        },
+        group: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        user: {
+          select: {
+            id: true,
+            username: true,
+          },
+        },
+      },
+    });
+
+    if (!prediction) {
+      throw new AppError(404, 'NOT_FOUND', 'Prediction not found');
+    }
+
+    if (prediction.userId !== userId) {
+      throw new AppError(403, 'FORBIDDEN', 'Not your prediction');
+    }
+
+    return prediction;
+  }
+
+  async deletePrediction(predictionId: number, userId: number) {
+    const prediction = await prisma.prediction.findUnique({
+      where: { id: predictionId },
+      include: { match: true },
+    });
+
+    if (!prediction) {
+      throw new AppError(404, 'NOT_FOUND', 'Prediction not found');
+    }
+
+    if (prediction.userId !== userId) {
+      throw new AppError(403, 'FORBIDDEN', 'Not your prediction');
+    }
+
+    if (new Date(prediction.match.scheduledDate) <= new Date()) {
+      throw new AppError(400, 'BAD_REQUEST', 'Cannot delete after match has started');
+    }
+
+    await prisma.prediction.delete({
+      where: { id: predictionId },
+    });
+
+    return { message: 'Prediction deleted successfully' };
+  }
+
   async getMatchPredictions(matchId: number, groupId: number, userId: number) {
     const member = await prisma.groupMember.findFirst({
       where: { groupId, userId },

@@ -128,6 +128,136 @@ The application uses the following main entities:
 - **GroupScoringRules**: Customizable scoring rules per group
 - **GroupRankings**: Cached rankings for performance
 
+```mermaid
+erDiagram
+	direction TB
+	USERS {
+		bigserial id PK ""
+		varchar username UK ""
+		varchar email UK ""
+		varchar password_hash  ""
+		varchar first_name  ""
+		varchar last_name  ""
+		timestamp created_at  ""
+	}
+
+	GROUP_MEMBERS {
+		bigserial id PK ""
+		bigint group_id FK ""
+		bigint user_id FK ""
+		varchar role  "owner/admin/member"
+		timestamp joined_at  ""
+		integer total_points  ""
+	}
+
+	GROUPS {
+		bigserial id PK ""
+		varchar name  ""
+		text description  ""
+		bigint owner_id FK ""
+		bigint competition_id FK ""
+		varchar visibility  "private/public"
+		varchar invite_code UK ""
+		timestamp created_at  ""
+	}
+
+	PREDICTIONS {
+		bigserial id PK ""
+		bigint user_id FK ""
+		bigint match_id FK ""
+		bigint group_id FK ""
+		integer home_score_prediction  ""
+		integer away_score_prediction  ""
+		timestamp predicted_at  ""
+		integer points_earned  ""
+	}
+
+	GROUP_INVITATIONS {
+		bigserial id PK ""
+		bigint group_id FK ""
+		bigint inviter_id FK ""
+		varchar invitee_email  ""
+		bigint invitee_user_id FK ""
+		varchar status  ""
+		varchar token UK ""
+		timestamp expires_at  ""
+		timestamp created_at  ""
+		timestamp responded_at  ""
+	}
+
+	COMPETITIONS {
+		bigserial id PK ""
+		integer theme_id FK ""
+		varchar name  ""
+		text description  ""
+		timestamp start_date  ""
+		timestamp end_date  ""
+		varchar season  ""
+		varchar status  ""
+		timestamp created_at  ""
+	}
+
+	TEAMS {
+		bigserial id PK ""
+		bigint competition_id FK ""
+		varchar name  ""
+		varchar short_name  ""
+		varchar logo_url  ""
+		varchar country  ""
+		varchar external_api_id  ""
+		timestamp created_at  ""
+	}
+
+	MATCHES {
+		bigserial id PK ""
+		bigint competition_id FK ""
+		bigint home_team_id FK ""
+		bigint away_team_id FK ""
+		timestamp scheduled_date  ""
+		varchar status  ""
+		integer home_score  ""
+		integer away_score  ""
+		varchar location  ""
+		timestamp created_at  ""
+		timestamp updated_at  ""
+	}
+
+	GROUP_SCORING_RULES {
+		serial id PK ""
+		bigint group_id FK ""
+		text rule_description  ""
+		integer points  ""
+		timestamp created_at  ""
+	}
+
+	GROUP_RANKINGS {
+		bigserial id PK ""
+		bigint group_id FK ""
+		bigint user_id FK ""
+		integer total_points  ""
+		integer total_predictions  ""
+		integer correct_predictions  ""
+		integer rank  ""
+		integer previous_rank  ""
+	}
+
+	USERS||--o{GROUP_MEMBERS:"participe à"
+	USERS||--o{GROUPS:"possède"
+	USERS||--o{PREDICTIONS:"fait"
+	USERS||--o{GROUP_INVITATIONS:"invite"
+	COMPETITIONS||--o{GROUPS:"associé à"
+	COMPETITIONS||--o{TEAMS:"participe"
+	COMPETITIONS||--o{MATCHES:"contient"
+	TEAMS||--o{MATCHES:"joue home"
+	TEAMS||--o{MATCHES:"joue away"
+	GROUPS||--o{GROUP_MEMBERS:"contient"
+	GROUPS||--o{PREDICTIONS:"reçoit"
+	GROUPS||--o{GROUP_SCORING_RULES:"définit"
+	GROUPS||--o{GROUP_INVITATIONS:"pour"
+	GROUPS||--o{GROUP_RANKINGS:"classe"
+	MATCHES||--o{PREDICTIONS:"pronostiqué"
+```
+
 ## Scoring System
 
 The default scoring rules are:

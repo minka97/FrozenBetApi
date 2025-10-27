@@ -113,17 +113,6 @@ CREATE TABLE group_invitations (
     responded_at TIMESTAMP
 );
 
--- Table des bannissements
-CREATE TABLE group_bans (
-    id BIGSERIAL PRIMARY KEY,
-    group_id BIGINT REFERENCES groups(id) ON DELETE CASCADE,
-    user_id BIGINT REFERENCES users(id) ON DELETE CASCADE,
-    banned_by BIGINT REFERENCES users(id) ON DELETE SET NULL,
-    reason TEXT,
-    banned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(group_id, user_id)
-);
-
 -- Table des classements (cache pour performance)
 CREATE TABLE group_rankings (
     id BIGSERIAL PRIMARY KEY,

@@ -89,6 +89,36 @@ router.post('/', authenticate, async (req: AuthRequest, res, next) => {
 /**
  * @swagger
  * /api/predictions/{id}:
+ *   get:
+ *     summary: Get a specific prediction
+ *     tags: [Predictions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Prediction details
+ */
+router.get('/:id', authenticate, async (req: AuthRequest, res, next) => {
+  try {
+    const prediction = await predictionService.getPredictionById(
+      parseInt(req.params.id),
+      req.user!.userId
+    );
+    sendSuccess(res, prediction);
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * @swagger
+ * /api/predictions/{id}:
  *   put:
  *     summary: Update a prediction
  *     tags: [Predictions]
@@ -127,6 +157,36 @@ router.put('/:id', authenticate, async (req: AuthRequest, res, next) => {
       data
     );
     sendSuccess(res, prediction, 'Prediction updated successfully');
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * @swagger
+ * /api/predictions/{id}:
+ *   delete:
+ *     summary: Delete a prediction
+ *     tags: [Predictions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Prediction deleted
+ */
+router.delete('/:id', authenticate, async (req: AuthRequest, res, next) => {
+  try {
+    const result = await predictionService.deletePrediction(
+      parseInt(req.params.id),
+      req.user!.userId
+    );
+    sendSuccess(res, result);
   } catch (error) {
     next(error);
   }

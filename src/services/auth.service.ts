@@ -159,4 +159,28 @@ export class AuthService {
 
     return { message: 'Password changed successfully' };
   }
+
+  async refreshToken(userId: number) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new AppError(404, 'NOT_FOUND', 'User not found');
+    }
+
+    const token = generateToken({
+      userId: user.id,
+      email: user.email,
+      username: user.username,
+    });
+
+    const refreshToken = generateRefreshToken({
+      userId: user.id,
+      email: user.email,
+      username: user.username,
+    });
+
+    return { token, refreshToken };
+  }
 }
