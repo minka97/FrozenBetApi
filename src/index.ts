@@ -17,6 +17,7 @@ import predictionRoutes from "./routes/prediction.routes";
 import statisticsRoutes from "./routes/statistics.routes";
 import teamRoutes from "./routes/team.routes";
 import userRoutes from "./routes/user.routes";
+import sseRoutes from "./routes/sse.routes";
 
 const app = express();
 
@@ -99,6 +100,7 @@ app.use("/api/predictions", predictionRoutes);
 app.use("/api/matches", matchRoutes);
 app.use("/api/invitations", invitationRoutes);
 app.use("/api/statistics", statisticsRoutes);
+app.use("/api/sse", sseRoutes);
 
 // 404 handler
 app.use((req, res) => {

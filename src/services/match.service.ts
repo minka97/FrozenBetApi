@@ -1,6 +1,7 @@
 import prisma from '../config/database';
 import { AppError } from '../middleware/errorHandler';
 import { PredictionService } from './prediction.service';
+import { sseService } from './sse.service';
 
 export class MatchService {
   private predictionService = new PredictionService();
@@ -28,6 +29,11 @@ export class MatchService {
   }
 
   async updateMatch(id: number, data: any) {
+    const oldMatch = await prisma.match.findUnique({
+      where: { id },
+      select: { status: true },
+    });
+
     const match = await prisma.match.update({
       where: { id },
       data,
@@ -37,6 +43,16 @@ export class MatchService {
         competition: true,
       },
     });
+
+    // Broadcast status change if status has changed
+    if (oldMatch && oldMatch.status !== match.status) {
+      sseService.broadcastMatchStatusChange(id, match.status, {
+        homeTeam: match.homeTeam.name,
+        awayTeam: match.awayTeam.name,
+        competition: match.competition.name,
+        scheduledDate: match.scheduledDate,
+      });
+    }
 
     return match;
   }
@@ -49,9 +65,14 @@ export class MatchService {
     return { message: 'Match deleted successfully' };
   }
 
-  async updateScore(id: number, homeScore: number, awayScore: number) {
+  async updateScore(id: number, homeScore: number, awayScore: number, status?: string) {
     const match = await prisma.match.findUnique({
       where: { id },
+      include: {
+        homeTeam: true,
+        awayTeam: true,
+        competition: true,
+      },
     });
 
     if (!match) {
@@ -63,16 +84,29 @@ export class MatchService {
       data: {
         homeScore,
         awayScore,
-        status: 'finished',
+        status: status || 'finished',
       },
       include: {
         homeTeam: true,
         awayTeam: true,
+        competition: true,
       },
     });
 
-    // Calculate points for all predictions on this match
-    await this.predictionService.calculatePointsForMatch(id);
+    // Broadcast score update to all subscribed clients
+    sseService.broadcastScoreUpdate(id, {
+      homeScore,
+      awayScore,
+      homeTeam: updated.homeTeam.name,
+      awayTeam: updated.awayTeam.name,
+      status: updated.status,
+      competition: updated.competition.name,
+    });
+
+    // Calculate points for all predictions on this match if finished
+    if (updated.status === 'finished') {
+      await this.predictionService.calculatePointsForMatch(id);
+    }
 
     return updated;
   }
