@@ -1,0 +1,222 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// MODELS - PLATEFORME DE PRONOSTICS FrozenBet
+// ============================================
+
+model User {
+  id            Int      @id @default(autoincrement())
+  username      String   @unique
+  email         String   @unique
+  passwordHash  String   @map("password_hash")
+  firstName     String?  @map("first_name")
+  lastName      String?  @map("last_name")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  // Relations
+  ownedGroups       Group[]            @relation("GroupOwner")
+  groupMemberships  GroupMember[]
+  predictions       Prediction[]
+  sentInvitations   GroupInvitation[]  @relation("InvitationInviter")
+  receivedInvitations GroupInvitation[] @relation("InvitationInvitee")
+  rankings          GroupRanking[]
+  bannedFrom        GroupBan[]         @relation("BannedUser")
+  bannedUsers       GroupBan[]         @relation("BanningUser")
+
+  @@map("users")
+}
+
+model Competition {
+  id          Int      @id @default(autoincrement())
+  themeId     Int      @map("theme_id")
+  name        String
+  description String?
+  startDate   DateTime @map("start_date")
+  endDate     DateTime @map("end_date")
+  season      String?
+  status      String   @default("upcoming") // upcoming, ongoing, finished, cancelled
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // Relations
+  teams  Team[]
+  matches Match[]
+  groups  Group[]
+
+  @@map("competitions")
+}
+
+model Team {
+  id            Int      @id @default(autoincrement())
+  competitionId Int      @map("competition_id")
+  name          String
+  shortName     String?  @map("short_name")
+  logoUrl       String?  @map("logo_url")
+  country       String?
+  externalApiId String?  @map("external_api_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  // Relations
+  competition  Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  homeMatches  Match[]     @relation("HomeTeam")
+  awayMatches  Match[]     @relation("AwayTeam")
+
+  @@map("teams")
+}
+
+model Match {
+  id            Int      @id @default(autoincrement())
+  competitionId Int      @map("competition_id")
+  homeTeamId    Int      @map("home_team_id")
+  awayTeamId    Int      @map("away_team_id")
+  scheduledDate DateTime @map("scheduled_date")
+  status        String   @default("scheduled") // scheduled, live, finished, postponed, cancelled
+  homeScore     Int?     @map("home_score")
+  awayScore     Int?     @map("away_score")
+  location      String?
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  competition Competition  @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  homeTeam    Team         @relation("HomeTeam", fields: [homeTeamId], references: [id], onDelete: Cascade)
+  awayTeam    Team         @relation("AwayTeam", fields: [awayTeamId], references: [id], onDelete: Cascade)
+  predictions Prediction[]
+
+  @@map("matches")
+}
+
+model Group {
+  id            Int      @id @default(autoincrement())
+  name          String
+  description   String?
+  ownerId       Int      @map("owner_id")
+  competitionId Int      @map("competition_id")
+  visibility    String   @default("private") // private, public
+  inviteCode    String?  @unique @map("invite_code")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  // Relations
+  owner        User               @relation("GroupOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  competition  Competition        @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  members      GroupMember[]
+  predictions  Prediction[]
+  invitations  GroupInvitation[]
+  rankings     GroupRanking[]
+  scoringRules GroupScoringRule[]
+  bans         GroupBan[]
+
+  @@map("groups")
+}
+
+model GroupScoringRule {
+  id              Int      @id @default(autoincrement())
+  groupId         Int      @map("group_id")
+  ruleDescription String?  @map("rule_description")
+  points          Int
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  // Relations
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@map("group_scoring_rules")
+}
+
+model GroupMember {
+  id          Int      @id @default(autoincrement())
+  groupId     Int      @map("group_id")
+  userId      Int      @map("user_id")
+  role        String   @default("member") // owner, admin, member
+  joinedAt    DateTime @default(now()) @map("joined_at")
+  totalPoints Int      @default(0) @map("total_points")
+
+  // Relations
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId])
+  @@map("group_members")
+}
+
+model Prediction {
+  id                   Int      @id @default(autoincrement())
+  userId               Int      @map("user_id")
+  matchId              Int      @map("match_id")
+  groupId              Int      @map("group_id")
+  homeScorePrediction  Int      @map("home_score_prediction")
+  awayScorePrediction  Int      @map("away_score_prediction")
+  predictedAt          DateTime @default(now()) @map("predicted_at")
+  pointsEarned         Int?     @map("points_earned")
+
+  // Relations
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  match Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, matchId, groupId])
+  @@map("predictions")
+}
+
+model GroupInvitation {
+  id             Int       @id @default(autoincrement())
+  groupId        Int       @map("group_id")
+  inviterId      Int       @map("inviter_id")
+  inviteeEmail   String    @map("invitee_email")
+  inviteeUserId  Int?      @map("invitee_user_id")
+  status         String    @default("pending") // pending, accepted, rejected, expired
+  token          String    @unique
+  expiresAt      DateTime  @map("expires_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  respondedAt    DateTime? @map("responded_at")
+
+  // Relations
+  group    Group  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  inviter  User   @relation("InvitationInviter", fields: [inviterId], references: [id], onDelete: Cascade)
+  invitee  User?  @relation("InvitationInvitee", fields: [inviteeUserId], references: [id], onDelete: Cascade)
+
+  @@map("group_invitations")
+}
+
+model GroupBan {
+  id        Int      @id @default(autoincrement())
+  groupId   Int      @map("group_id")
+  userId    Int      @map("user_id")
+  bannedBy  Int?     @map("banned_by")
+  reason    String?
+  bannedAt  DateTime @default(now()) @map("banned_at")
+
+  // Relations
+  group   Group  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user    User   @relation("BannedUser", fields: [userId], references: [id], onDelete: Cascade)
+  banner  User?  @relation("BanningUser", fields: [bannedBy], references: [id], onDelete: SetNull)
+
+  @@unique([groupId, userId])
+  @@map("group_bans")
+}
+
+model GroupRanking {
+  id                 Int  @id @default(autoincrement())
+  groupId            Int  @map("group_id")
+  userId             Int  @map("user_id")
+  totalPoints        Int  @default(0) @map("total_points")
+  totalPredictions   Int  @default(0) @map("total_predictions")
+  correctPredictions Int  @default(0) @map("correct_predictions")
+  rank               Int?
+  previousRank       Int? @map("previous_rank")
+
+  // Relations
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId])
+  @@map("group_rankings")
+}
