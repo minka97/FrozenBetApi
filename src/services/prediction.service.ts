@@ -106,32 +106,49 @@ export class PredictionService {
     return updated;
   }
 
-  async getUserPredictions(userId: number, params: { groupId?: number; matchId?: number }) {
+  async getUserPredictions(userId: number, params: { groupId?: number; matchId?: number; page?: number; limit?: number }) {
     const where: any = { userId };
     if (params.groupId) where.groupId = params.groupId;
     if (params.matchId) where.matchId = params.matchId;
 
-    const predictions = await prisma.prediction.findMany({
-      where,
-      include: {
-        match: {
-          include: {
-            homeTeam: true,
-            awayTeam: true,
-            competition: true,
-          },
-        },
-        group: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-      },
-      orderBy: { predictedAt: 'desc' },
-    });
+    const pageNumber = params.page || 1;
+    const limitNumber = params.limit || 20;
+    const skip = (pageNumber - 1) * limitNumber;
 
-    return predictions;
+    const [predictions, total] = await Promise.all([
+      prisma.prediction.findMany({
+        where,
+        include: {
+          match: {
+            include: {
+              homeTeam: true,
+              awayTeam: true,
+              competition: true,
+            },
+          },
+          group: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+        orderBy: { predictedAt: 'desc' },
+        skip,
+        take: limitNumber,
+      }),
+      prisma.prediction.count({ where }),
+    ]);
+
+    return {
+      predictions,
+      meta: {
+        page: pageNumber,
+        limit: limitNumber,
+        total,
+        totalPages: Math.ceil(total / limitNumber),
+      },
+    };
   }
 
   async getPredictionById(predictionId: number, userId: number) {

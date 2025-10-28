@@ -24,21 +24,31 @@ const predictionService = new PredictionService();
  *         name: matchId
  *         schema:
  *           type: integer
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
  *     responses:
  *       200:
  *         description: List of predictions
  */
 router.get('/', authenticate, async (req: AuthRequest, res, next) => {
   try {
-    const { groupId, matchId } = req.query;
-    const predictions = await predictionService.getUserPredictions(
+    const { groupId, matchId, page, limit } = req.query;
+    const result = await predictionService.getUserPredictions(
       req.user!.userId,
       {
         groupId: groupId ? parseInt(groupId as string) : undefined,
         matchId: matchId ? parseInt(matchId as string) : undefined,
+        page: page ? parseInt(page as string) : undefined,
+        limit: limit ? parseInt(limit as string) : undefined,
       }
     );
-    sendSuccess(res, predictions);
+    sendSuccess(res, result.predictions, 'Predictions retrieved successfully', 200, result.meta);
   } catch (error) {
     next(error);
   }
