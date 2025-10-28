@@ -91,22 +91,41 @@ export class TeamService {
     return { message: 'Team deleted successfully' };
   }
 
-  async getTeamMatches(id: number) {
-    const matches = await prisma.match.findMany({
-      where: {
-        OR: [
-          { homeTeamId: id },
-          { awayTeamId: id },
-        ],
-      },
-      include: {
-        homeTeam: true,
-        awayTeam: true,
-        competition: true,
-      },
-      orderBy: { scheduledDate: 'desc' },
-    });
+  async getTeamMatches(id: number, page?: number, limit?: number) {
+    const pageNumber = page || 1;
+    const limitNumber = limit || 20;
+    const skip = (pageNumber - 1) * limitNumber;
 
-    return matches;
+    const where = {
+      OR: [
+        { homeTeamId: id },
+        { awayTeamId: id },
+      ],
+    };
+
+    const [matches, total] = await Promise.all([
+      prisma.match.findMany({
+        where,
+        include: {
+          homeTeam: true,
+          awayTeam: true,
+          competition: true,
+        },
+        orderBy: { scheduledDate: 'desc' },
+        skip,
+        take: limitNumber,
+      }),
+      prisma.match.count({ where }),
+    ]);
+
+    return {
+      matches,
+      meta: {
+        page: pageNumber,
+        limit: limitNumber,
+        total,
+        totalPages: Math.ceil(total / limitNumber),
+      },
+    };
   }
 }

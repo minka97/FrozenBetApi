@@ -242,24 +242,43 @@ export class GroupService {
     return { message: 'Left group successfully' };
   }
 
-  async getMembers(groupId: number) {
-    const members = await prisma.groupMember.findMany({
-      where: { groupId },
-      include: {
-        user: {
-          select: {
-            id: true,
-            username: true,
-            email: true,
-            firstName: true,
-            lastName: true,
+  async getMembers(groupId: number, page?: number, limit?: number) {
+    const pageNumber = page || 1;
+    const limitNumber = limit || 20;
+    const skip = (pageNumber - 1) * limitNumber;
+
+    const where = { groupId };
+
+    const [members, total] = await Promise.all([
+      prisma.groupMember.findMany({
+        where,
+        include: {
+          user: {
+            select: {
+              id: true,
+              username: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+            },
           },
         },
-      },
-      orderBy: { totalPoints: 'desc' },
-    });
+        orderBy: { totalPoints: 'desc' },
+        skip,
+        take: limitNumber,
+      }),
+      prisma.groupMember.count({ where }),
+    ]);
 
-    return members;
+    return {
+      members,
+      meta: {
+        page: pageNumber,
+        limit: limitNumber,
+        total,
+        totalPages: Math.ceil(total / limitNumber),
+      },
+    };
   }
 
   async removeMember(groupId: number, userId: number, targetUserId: number) {
@@ -284,7 +303,7 @@ export class GroupService {
     return { message: 'Member removed successfully' };
   }
 
-  async getRankings(groupId: number) {
+  async getRankings(groupId: number, page?: number, limit?: number) {
     const group = await prisma.group.findUnique({
       where: { id: groupId },
     });
@@ -293,25 +312,44 @@ export class GroupService {
       throw new AppError(404, 'NOT_FOUND', 'Group not found');
     }
 
-    const rankings = await prisma.groupRanking.findMany({
-      where: { groupId },
-      include: {
-        user: {
-          select: {
-            id: true,
-            username: true,
-            firstName: true,
-            lastName: true,
+    const pageNumber = page || 1;
+    const limitNumber = limit || 20;
+    const skip = (pageNumber - 1) * limitNumber;
+
+    const where = { groupId };
+
+    const [rankings, total] = await Promise.all([
+      prisma.groupRanking.findMany({
+        where,
+        include: {
+          user: {
+            select: {
+              id: true,
+              username: true,
+              firstName: true,
+              lastName: true,
+            },
           },
         },
-      },
-      orderBy: { rank: 'asc' },
-    });
+        orderBy: { rank: 'asc' },
+        skip,
+        take: limitNumber,
+      }),
+      prisma.groupRanking.count({ where }),
+    ]);
 
-    return rankings;
+    return {
+      rankings,
+      meta: {
+        page: pageNumber,
+        limit: limitNumber,
+        total,
+        totalPages: Math.ceil(total / limitNumber),
+      },
+    };
   }
 
-  async getGroupPredictions(groupId: number, userId: number) {
+  async getGroupPredictions(groupId: number, userId: number, page?: number, limit?: number) {
     const member = await prisma.groupMember.findFirst({
       where: { groupId, userId },
     });
@@ -320,26 +358,45 @@ export class GroupService {
       throw new AppError(403, 'FORBIDDEN', 'Not a member of this group');
     }
 
-    const predictions = await prisma.prediction.findMany({
-      where: { groupId },
-      include: {
-        user: {
-          select: {
-            id: true,
-            username: true,
-          },
-        },
-        match: {
-          include: {
-            homeTeam: true,
-            awayTeam: true,
-          },
-        },
-      },
-      orderBy: { predictedAt: 'desc' },
-    });
+    const pageNumber = page || 1;
+    const limitNumber = limit || 20;
+    const skip = (pageNumber - 1) * limitNumber;
 
-    return predictions;
+    const where = { groupId };
+
+    const [predictions, total] = await Promise.all([
+      prisma.prediction.findMany({
+        where,
+        include: {
+          user: {
+            select: {
+              id: true,
+              username: true,
+            },
+          },
+          match: {
+            include: {
+              homeTeam: true,
+              awayTeam: true,
+            },
+          },
+        },
+        orderBy: { predictedAt: 'desc' },
+        skip,
+        take: limitNumber,
+      }),
+      prisma.prediction.count({ where }),
+    ]);
+
+    return {
+      predictions,
+      meta: {
+        page: pageNumber,
+        limit: limitNumber,
+        total,
+        totalPages: Math.ceil(total / limitNumber),
+      },
+    };
   }
 
   async getScoringRules(groupId: number) {

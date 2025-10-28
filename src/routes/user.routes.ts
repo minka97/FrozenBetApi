@@ -99,14 +99,27 @@ router.get('/:id/statistics', async (req, res, next) => {
  *         required: true
  *         schema:
  *           type: integer
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
  *     responses:
  *       200:
  *         description: User's groups
  */
 router.get('/:id/groups', async (req, res, next) => {
   try {
-    const groups = await userService.getUserGroups(parseInt(req.params.id));
-    sendSuccess(res, groups);
+    const { page, limit } = req.query;
+    const result = await userService.getUserGroups(
+      parseInt(req.params.id),
+      page ? parseInt(page as string) : undefined,
+      limit ? parseInt(limit as string) : undefined
+    );
+    sendSuccess(res, result.groups, 'Groups retrieved successfully', 200, result.meta);
   } catch (error) {
     next(error);
   }
@@ -124,14 +137,27 @@ router.get('/:id/groups', async (req, res, next) => {
  *         required: true
  *         schema:
  *           type: integer
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
  *     responses:
  *       200:
  *         description: User's predictions
  */
 router.get('/:id/predictions', async (req, res, next) => {
   try {
-    const predictions = await userService.getUserPredictions(parseInt(req.params.id));
-    sendSuccess(res, predictions);
+    const { page, limit } = req.query;
+    const result = await userService.getUserPredictions(
+      parseInt(req.params.id),
+      page ? parseInt(page as string) : undefined,
+      limit ? parseInt(limit as string) : undefined
+    );
+    sendSuccess(res, result.predictions, 'Predictions retrieved successfully', 200, result.meta);
   } catch (error) {
     next(error);
   }

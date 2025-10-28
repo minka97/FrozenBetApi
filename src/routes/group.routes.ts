@@ -268,14 +268,27 @@ router.post('/:id/leave', authenticate, async (req: AuthRequest, res, next) => {
  *         required: true
  *         schema:
  *           type: integer
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
  *     responses:
  *       200:
  *         description: List of members
  */
 router.get('/:id/members', async (req, res, next) => {
   try {
-    const members = await groupService.getMembers(parseInt(req.params.id));
-    sendSuccess(res, members);
+    const { page, limit } = req.query;
+    const result = await groupService.getMembers(
+      parseInt(req.params.id),
+      page ? parseInt(page as string) : undefined,
+      limit ? parseInt(limit as string) : undefined
+    );
+    sendSuccess(res, result.members, 'Members retrieved successfully', 200, result.meta);
   } catch (error) {
     next(error);
   }
@@ -329,14 +342,27 @@ router.delete('/:id/members/:userId', authenticate, async (req: AuthRequest, res
  *         required: true
  *         schema:
  *           type: integer
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
  *     responses:
  *       200:
  *         description: Group rankings
  */
 router.get('/:id/rankings', async (req, res, next) => {
   try {
-    const rankings = await groupService.getRankings(parseInt(req.params.id));
-    sendSuccess(res, rankings);
+    const { page, limit } = req.query;
+    const result = await groupService.getRankings(
+      parseInt(req.params.id),
+      page ? parseInt(page as string) : undefined,
+      limit ? parseInt(limit as string) : undefined
+    );
+    sendSuccess(res, result.rankings, 'Rankings retrieved successfully', 200, result.meta);
   } catch (error) {
     next(error);
   }
@@ -356,17 +382,28 @@ router.get('/:id/rankings', async (req, res, next) => {
  *         required: true
  *         schema:
  *           type: integer
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
  *     responses:
  *       200:
  *         description: List of predictions
  */
 router.get('/:id/predictions', authenticate, async (req: AuthRequest, res, next) => {
   try {
-    const predictions = await groupService.getGroupPredictions(
+    const { page, limit } = req.query;
+    const result = await groupService.getGroupPredictions(
       parseInt(req.params.id),
-      req.user!.userId
+      req.user!.userId,
+      page ? parseInt(page as string) : undefined,
+      limit ? parseInt(limit as string) : undefined
     );
-    sendSuccess(res, predictions);
+    sendSuccess(res, result.predictions, 'Predictions retrieved successfully', 200, result.meta);
   } catch (error) {
     next(error);
   }

@@ -25,33 +25,57 @@ const matchService = new MatchService();
  *         name: competitionId
  *         schema:
  *           type: integer
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
  *     responses:
  *       200:
  *         description: List of matches
  */
 router.get('/', async (req, res, next) => {
   try {
-    const { status, competitionId } = req.query;
+    const { status, competitionId, page, limit } = req.query;
+    const pageNumber = page ? parseInt(page as string) : 1;
+    const limitNumber = limit ? parseInt(limit as string) : 20;
+    const skip = (pageNumber - 1) * limitNumber;
+
     const where: any = {};
     if (status) where.status = status;
     if (competitionId) where.competitionId = parseInt(competitionId as string);
 
-    const matches = await prisma.match.findMany({
-      where,
-      include: {
-        homeTeam: true,
-        awayTeam: true,
-        competition: {
-          select: {
-            id: true,
-            name: true,
+    const [matches, total] = await Promise.all([
+      prisma.match.findMany({
+        where,
+        include: {
+          homeTeam: true,
+          awayTeam: true,
+          competition: {
+            select: {
+              id: true,
+              name: true,
+            },
           },
         },
-      },
-      orderBy: { scheduledDate: 'asc' },
-    });
+        orderBy: { scheduledDate: 'asc' },
+        skip,
+        take: limitNumber,
+      }),
+      prisma.match.count({ where }),
+    ]);
 
-    sendSuccess(res, matches);
+    const meta = {
+      page: pageNumber,
+      limit: limitNumber,
+      total,
+      totalPages: Math.ceil(total / limitNumber),
+    };
+
+    sendSuccess(res, matches, 'Matches retrieved successfully', 200, meta);
   } catch (error) {
     next(error);
   }
@@ -63,29 +87,56 @@ router.get('/', async (req, res, next) => {
  *   get:
  *     summary: Get upcoming matches
  *     tags: [Matches]
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
  *     responses:
  *       200:
  *         description: List of upcoming matches
  */
 router.get('/upcoming', async (req, res, next) => {
   try {
-    const matches = await prisma.match.findMany({
-      where: {
-        status: 'scheduled',
-        scheduledDate: {
-          gt: new Date(),
-        },
-      },
-      include: {
-        homeTeam: true,
-        awayTeam: true,
-        competition: true,
-      },
-      orderBy: { scheduledDate: 'asc' },
-      take: 50,
-    });
+    const { page, limit } = req.query;
+    const pageNumber = page ? parseInt(page as string) : 1;
+    const limitNumber = limit ? parseInt(limit as string) : 50;
+    const skip = (pageNumber - 1) * limitNumber;
 
-    sendSuccess(res, matches);
+    const where = {
+      status: 'scheduled',
+      scheduledDate: {
+        gt: new Date(),
+      },
+    };
+
+    const [matches, total] = await Promise.all([
+      prisma.match.findMany({
+        where,
+        include: {
+          homeTeam: true,
+          awayTeam: true,
+          competition: true,
+        },
+        orderBy: { scheduledDate: 'asc' },
+        skip,
+        take: limitNumber,
+      }),
+      prisma.match.count({ where }),
+    ]);
+
+    const meta = {
+      page: pageNumber,
+      limit: limitNumber,
+      total,
+      totalPages: Math.ceil(total / limitNumber),
+    };
+
+    sendSuccess(res, matches, 'Upcoming matches retrieved successfully', 200, meta);
   } catch (error) {
     next(error);
   }
@@ -97,25 +148,53 @@ router.get('/upcoming', async (req, res, next) => {
  *   get:
  *     summary: Get live matches
  *     tags: [Matches]
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
  *     responses:
  *       200:
  *         description: List of live matches
  */
 router.get('/live', async (req, res, next) => {
   try {
-    const matches = await prisma.match.findMany({
-      where: {
-        status: 'live',
-      },
-      include: {
-        homeTeam: true,
-        awayTeam: true,
-        competition: true,
-      },
-      orderBy: { scheduledDate: 'desc' },
-    });
+    const { page, limit } = req.query;
+    const pageNumber = page ? parseInt(page as string) : 1;
+    const limitNumber = limit ? parseInt(limit as string) : 20;
+    const skip = (pageNumber - 1) * limitNumber;
 
-    sendSuccess(res, matches);
+    const where = {
+      status: 'live',
+    };
+
+    const [matches, total] = await Promise.all([
+      prisma.match.findMany({
+        where,
+        include: {
+          homeTeam: true,
+          awayTeam: true,
+          competition: true,
+        },
+        orderBy: { scheduledDate: 'desc' },
+        skip,
+        take: limitNumber,
+      }),
+      prisma.match.count({ where }),
+    ]);
+
+    const meta = {
+      page: pageNumber,
+      limit: limitNumber,
+      total,
+      totalPages: Math.ceil(total / limitNumber),
+    };
+
+    sendSuccess(res, matches, 'Live matches retrieved successfully', 200, meta);
   } catch (error) {
     next(error);
   }

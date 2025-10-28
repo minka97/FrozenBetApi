@@ -186,14 +186,27 @@ router.delete('/:id', authenticate, async (req, res, next) => {
  *         required: true
  *         schema:
  *           type: integer
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
  *     responses:
  *       200:
  *         description: List of matches for the team
  */
 router.get('/:id/matches', async (req, res, next) => {
   try {
-    const matches = await teamService.getTeamMatches(parseInt(req.params.id));
-    sendSuccess(res, matches);
+    const { page, limit } = req.query;
+    const result = await teamService.getTeamMatches(
+      parseInt(req.params.id),
+      page ? parseInt(page as string) : undefined,
+      limit ? parseInt(limit as string) : undefined
+    );
+    sendSuccess(res, result.matches, 'Matches retrieved successfully', 200, result.meta);
   } catch (error) {
     next(error);
   }

@@ -92,7 +92,7 @@ export class UserService {
     };
   }
 
-  async getUserGroups(userId: number) {
+  async getUserGroups(userId: number, page?: number, limit?: number) {
     const user = await prisma.user.findUnique({
       where: { id: userId },
     });
@@ -101,36 +101,57 @@ export class UserService {
       throw new AppError(404, 'NOT_FOUND', 'User not found');
     }
 
-    const memberships = await prisma.groupMember.findMany({
-      where: { userId },
-      include: {
-        group: {
-          include: {
-            competition: {
-              select: {
-                id: true,
-                name: true,
+    const pageNumber = page || 1;
+    const limitNumber = limit || 20;
+    const skip = (pageNumber - 1) * limitNumber;
+
+    const where = { userId };
+
+    const [memberships, total] = await Promise.all([
+      prisma.groupMember.findMany({
+        where,
+        include: {
+          group: {
+            include: {
+              competition: {
+                select: {
+                  id: true,
+                  name: true,
+                },
               },
-            },
-            _count: {
-              select: {
-                members: true,
+              _count: {
+                select: {
+                  members: true,
+                },
               },
             },
           },
         },
-      },
-    });
+        skip,
+        take: limitNumber,
+      }),
+      prisma.groupMember.count({ where }),
+    ]);
 
-    return memberships.map(m => ({
+    const groups = memberships.map(m => ({
       ...m.group,
       userRole: m.role,
       userPoints: m.totalPoints,
       joinedAt: m.joinedAt,
     }));
+
+    return {
+      groups,
+      meta: {
+        page: pageNumber,
+        limit: limitNumber,
+        total,
+        totalPages: Math.ceil(total / limitNumber),
+      },
+    };
   }
 
-  async getUserPredictions(userId: number) {
+  async getUserPredictions(userId: number, page?: number, limit?: number) {
     const user = await prisma.user.findUnique({
       where: { id: userId },
     });
@@ -139,26 +160,45 @@ export class UserService {
       throw new AppError(404, 'NOT_FOUND', 'User not found');
     }
 
-    const predictions = await prisma.prediction.findMany({
-      where: { userId },
-      include: {
-        match: {
-          include: {
-            homeTeam: true,
-            awayTeam: true,
-            competition: true,
-          },
-        },
-        group: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-      },
-      orderBy: { predictedAt: 'desc' },
-    });
+    const pageNumber = page || 1;
+    const limitNumber = limit || 20;
+    const skip = (pageNumber - 1) * limitNumber;
 
-    return predictions;
+    const where = { userId };
+
+    const [predictions, total] = await Promise.all([
+      prisma.prediction.findMany({
+        where,
+        include: {
+          match: {
+            include: {
+              homeTeam: true,
+              awayTeam: true,
+              competition: true,
+            },
+          },
+          group: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+        orderBy: { predictedAt: 'desc' },
+        skip,
+        take: limitNumber,
+      }),
+      prisma.prediction.count({ where }),
+    ]);
+
+    return {
+      predictions,
+      meta: {
+        page: pageNumber,
+        limit: limitNumber,
+        total,
+        totalPages: Math.ceil(total / limitNumber),
+      },
+    };
   }
 }

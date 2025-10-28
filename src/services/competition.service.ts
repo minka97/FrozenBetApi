@@ -95,26 +95,64 @@ export class CompetitionService {
     return { message: 'Competition deleted successfully' };
   }
 
-  async getCompetitionMatches(id: number) {
-    const matches = await prisma.match.findMany({
-      where: { competitionId: id },
-      include: {
-        homeTeam: true,
-        awayTeam: true,
-      },
-      orderBy: { scheduledDate: 'asc' },
-    });
+  async getCompetitionMatches(id: number, page?: number, limit?: number) {
+    const pageNumber = page || 1;
+    const limitNumber = limit || 20;
+    const skip = (pageNumber - 1) * limitNumber;
 
-    return matches;
+    const where = { competitionId: id };
+
+    const [matches, total] = await Promise.all([
+      prisma.match.findMany({
+        where,
+        include: {
+          homeTeam: true,
+          awayTeam: true,
+        },
+        orderBy: { scheduledDate: 'asc' },
+        skip,
+        take: limitNumber,
+      }),
+      prisma.match.count({ where }),
+    ]);
+
+    return {
+      matches,
+      meta: {
+        page: pageNumber,
+        limit: limitNumber,
+        total,
+        totalPages: Math.ceil(total / limitNumber),
+      },
+    };
   }
 
-  async getCompetitionTeams(id: number) {
-    const teams = await prisma.team.findMany({
-      where: { competitionId: id },
-      orderBy: { name: 'asc' },
-    });
+  async getCompetitionTeams(id: number, page?: number, limit?: number) {
+    const pageNumber = page || 1;
+    const limitNumber = limit || 20;
+    const skip = (pageNumber - 1) * limitNumber;
 
-    return teams;
+    const where = { competitionId: id };
+
+    const [teams, total] = await Promise.all([
+      prisma.team.findMany({
+        where,
+        orderBy: { name: 'asc' },
+        skip,
+        take: limitNumber,
+      }),
+      prisma.team.count({ where }),
+    ]);
+
+    return {
+      teams,
+      meta: {
+        page: pageNumber,
+        limit: limitNumber,
+        total,
+        totalPages: Math.ceil(total / limitNumber),
+      },
+    };
   }
 
   async getCompetitionStandings(id: number) {
