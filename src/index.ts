@@ -115,11 +115,14 @@ app.use((req, res) => {
 // Error handler (must be last)
 app.use(errorHandler);
 
-// Start server
-app.listen(config.port, () => {
-  console.log(`\n🚀 Server running on http://localhost:${config.port}`);
-  console.log(`📚 API Documentation: http://localhost:${config.port}/api/docs`);
-  console.log(`🏒 FrozenBet API - Hockey Predictions Platform`);
-});
+// Start server only if not in serverless environment (Vercel)
+if (process.env.VERCEL !== '1') {
+  app.listen(config.port, () => {
+    console.log(`\n🚀 Server running on http://localhost:${config.port}`);
+    console.log(`📚 API Documentation: http://localhost:${config.port}/api/docs`);
+    console.log(`🏒 FrozenBet API - Hockey Predictions Platform`);
+  });
+}
 
+// Export for Vercel
 export default app;
