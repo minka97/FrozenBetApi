@@ -98,7 +98,45 @@ const limiter = rateLimit({
 app.use("/api/", limiter);
 
 // Swagger documentation
-app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.use(
+  "/api/docs",
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerSpec, {
+    customCss: ".swagger-ui .topbar { display: none }",
+    customSiteTitle: "FrozenBet API Documentation",
+  })
+);
+
+// Explicitly serve swagger-ui assets
+app.get("/api/docs/swagger-ui.css", (_req, res) => {
+  res.sendFile(
+    require.resolve("swagger-ui-dist/swagger-ui.css")
+  );
+});
+
+app.get("/api/docs/swagger-ui-bundle.js", (_req, res) => {
+  res.sendFile(
+    require.resolve("swagger-ui-dist/swagger-ui-bundle.js")
+  );
+});
+
+app.get("/api/docs/swagger-ui-standalone-preset.js", (_req, res) => {
+  res.sendFile(
+    require.resolve("swagger-ui-dist/swagger-ui-standalone-preset.js")
+  );
+});
+
+app.get("/api/docs/favicon-16x16.png", (_req, res) => {
+  res.sendFile(
+    require.resolve("swagger-ui-dist/favicon-16x16.png")
+  );
+});
+
+app.get("/api/docs/favicon-32x32.png", (_req, res) => {
+  res.sendFile(
+    require.resolve("swagger-ui-dist/favicon-32x32.png")
+  );
+});
 
 // Health check
 app.get("/health", (req, res) => {
