@@ -36,8 +36,11 @@ const swaggerOptions = {
     },
     servers: [
       {
-        url: `http://localhost:${config.port}`,
-        description: "Development server",
+        url: process.env.VERCEL_URL
+          ? `https://${process.env.VERCEL_URL}`
+          : `http://localhost:${config.port}`,
+        description:
+          process.env.VERCEL === "1" ? "Production server" : "Development server",
       },
     ],
     components: {
@@ -55,13 +58,26 @@ const swaggerOptions = {
       },
     ],
   },
-  apis: ["./src/routes/*.ts"],
+  apis: [
+    process.env.VERCEL === "1" ? "./routes/*.ts" : "./src/routes/*.ts",
+  ],
 };
 
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
 
 // Middleware
-app.use(helmet());
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        scriptSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", "data:", "https:"],
+      },
+    },
+  })
+);
 app.use(
   cors({
     origin: config.cors.origins,
