@@ -59,7 +59,8 @@ const swaggerOptions = {
     ],
   },
   apis: [
-    process.env.VERCEL === "1" ? "./routes/*.ts" : "./src/routes/*.ts",
+    __dirname + "/routes/*.ts",
+    __dirname + "/routes/*.js",
   ],
 };
 
