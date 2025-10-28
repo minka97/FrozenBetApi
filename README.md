@@ -14,7 +14,8 @@ A complete REST API for a hockey predictions platform where users can create gro
 ## Tech Stack
 
 - **Backend**: Express.js (Node.js) with TypeScript
-- **Database**: SQLite with Prisma ORM
+- **Database**: PostgreSQL (Vercel) with Prisma ORM
+- **Real-time**: Server-Sent Events (SSE) for live scores
 - **Authentication**: JWT (JSON Web Tokens)
 - **Validation**: Zod schemas
 - **Documentation**: Swagger/OpenAPI auto-generated
@@ -113,6 +114,11 @@ Once the server is running, access the interactive API documentation at:
 - `GET /api/matches/live` - Get live matches
 - `GET /api/matches/:id` - Get match details
 - `GET /api/matches/:matchId/groups/:groupId/predictions` - Get predictions for a match
+
+### SSE - Live Scores (`/api/sse`)
+
+- `GET /api/sse/live-scores` - Subscribe to real-time score updates via SSE
+- `GET /api/sse/status` - Get SSE service status and active clients
 
 ## Database Schema
 
@@ -281,8 +287,10 @@ Groups can customize these rules through the API.
 ## Environment Variables
 
 ```env
-# Database
-DATABASE_URL="file:./dev.db"
+# Database - PostgreSQL on Vercel
+POSTGRES_URL="postgres://your-connection-string"
+DATABASE_URL="postgres://your-connection-string"
+PRISMA_DATABASE_URL="prisma+postgres://accelerate.prisma-data.net/?api_key=your-api-key"
 
 # JWT
 JWT_SECRET="your-super-secret-jwt-key-change-this-in-production"
@@ -299,6 +307,8 @@ CORS_ORIGINS="http://localhost:3000,http://localhost:8000"
 # Logging
 LOG_LEVEL=info
 ```
+
+**See [MIGRATION_POSTGRESQL.md](MIGRATION_POSTGRESQL.md) for complete database setup guide.**
 
 ## Prisma Commands
 
