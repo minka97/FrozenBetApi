@@ -1,0 +1,98 @@
+# @format
+name: "🕒 Cron - Peuplement automatique local"
+
+on:
+  schedule:
+    - cron: "0 */3 * * *" # ⏰ toutes les 6 heures (UTC)
+  workflow_dispatch: {}     # ✅ déclenchement manuel
+  push:
+    branches: ["main"]      # ⚙️ optionnel : déclenche aussi sur push
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cron-ingest
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+
+    env:
+      # 🔹 Variables issues des Secrets (ou du .secrets avec act)
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      COMPETITIONS_API_URL: ${{ secrets.COMPETITIONS_API_URL }}
+      TEAMS_API_URL: ${{ secrets.TEAMS_API_URL }}
+      MATCHES_API_URL: ${{ secrets.MATCHES_API_URL }}
+
+    steps:
+      - name: 📦 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🧰 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: 🧱 Prisma generate
+        run: npx prisma generate
+
+      # 🗂️ Force un chemin absolu pour SQLite et crée le dossier si besoin
+      - name: 🗂️ Set absolute DATABASE_URL and create folder
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          mkdir -p "${GITHUB_WORKSPACE}/prisma"
+          echo "DATABASE_URL=file:${GITHUB_WORKSPACE}/prisma/dev.db" >> "$GITHUB_ENV"
+          echo "📁 Base de données : ${GITHUB_WORKSPACE}/prisma/dev.db"
+
+      # 🛠️ Remap endpoints pour act (container) : localhost -> host.docker.internal
+      - name: 🛠️ Remap endpoints for act (container)
+        if: ${{ env.ACT == 'true' }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          echo "COMPETITIONS_API_URL=${COMPETITIONS_API_URL/localhost/host.docker.internal}" >> "$GITHUB_ENV"
+          echo "TEAMS_API_URL=${TEAMS_API_URL/localhost/host.docker.internal}" >> "$GITHUB_ENV"
+          echo "MATCHES_API_URL=${MATCHES_API_URL/localhost/host.docker.internal}" >> "$GITHUB_ENV"
+
+      - name: 🔎 Debug environment variables
+        run: |
+          echo "🔧 DATABASE_URL: $DATABASE_URL"
+          echo "🔧 COMPETITIONS_API_URL: $COMPETITIONS_API_URL"
+          echo "🔧 TEAMS_API_URL: $TEAMS_API_URL"
+          echo "🔧 MATCHES_API_URL: $MATCHES_API_URL"
+
+      # 🗃️ Crée le fichier SQLite et pousse le schéma avant l’ingestion
+      - name: 🗃️ Prisma db push (create schema)
+        run: npx prisma db push
+
+      # 🛡️ Skip auto si URLs locales sur runner GitHub (non act)
+      - name: 🛡️ Guard: skip when localhost on GitHub-hosted
+        if: ${{ env.ACT != 'true' && (contains(env.COMPETITIONS_API_URL, 'localhost') || contains(env.TEAMS_API_URL, 'localhost') || contains(env.MATCHES_API_URL, 'localhost')) }}
+        run: |
+          echo "⚠️ URLs locales détectées (localhost). Exécution ignorée sur runner GitHub car les APIs locales ne sont pas joignables."
+          exit 0
+
+      # 🔍 Vérifie que les APIs externes répondent avant ingestion
+      - name: 🔍 Ping APIs
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          curl --fail --max-time 8 -I "$COMPETITIONS_API_URL"
+          curl --fail --max-time 8 -I "$TEAMS_API_URL"
+          curl --fail --max-time 8 -I "$MATCHES_API_URL"
+
+      - name: 🚀 Ingest competitions
+        run: npm run ingest:competitions
+
+      - name: 🚀 Ingest teams
+        run: npm run ingest:teams
+
+      - name: 🚀 Ingest matches
+        run: npm run ingest:matches

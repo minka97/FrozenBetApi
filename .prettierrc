@@ -1,0 +1,11 @@
+# @format
+
+{
+  "overrides":
+    [
+      {
+        "files": ".secrets",
+        "options": { "insertPragma": false, "requirePragma": false },
+      },
+    ],
+}
